@@ -1,8 +1,7 @@
 import { useState, useCallback } from "react";
 import Sidebar from "./components/Sidebar";
 import ChatWindow from "./components/ChatWindow";
-import type { Session } from "./types";
-import type { Message } from "./types";
+import type { Session, Message } from "./types";
 import { sendMessage, sendMessageStream } from "./api/chat";
 import "./App.css";
 
@@ -38,24 +37,17 @@ function App() {
     if (isStreaming) return;
 
     const userMsg: Message = { role: "user", content: text, id: Date.now().toString() };
-
-    // update title from first message
-    updateSession(activeSessionId, (s) => ({
-      ...s,
-      title: s.messages.length === 0 ? text.slice(0, 36) : s.title,
-      messages: [...s.messages, userMsg],
-    }));
-
-    setIsStreaming(true);
+    const aiMsgId = (Date.now() + 1).toString();
 
     if (useStream) {
-      const aiMsgId = (Date.now() + 1).toString();
-      const aiMsg: Message = { role: "ai", content: "", id: aiMsgId };
-
+      // add user + empty AI bubble together
       updateSession(activeSessionId, (s) => ({
         ...s,
-        messages: [...s.messages, userMsg, aiMsg],
+        title: s.messages.length === 0 ? text.slice(0, 36) : s.title,
+        messages: [...s.messages, userMsg, { role: "ai", content: "", id: aiMsgId }],
       }));
+
+      setIsStreaming(true);
 
       await sendMessageStream(
         activeSessionId,
@@ -71,16 +63,22 @@ function App() {
         () => setIsStreaming(false)
       );
     } else {
+      updateSession(activeSessionId, (s) => ({
+        ...s,
+        title: s.messages.length === 0 ? text.slice(0, 36) : s.title,
+        messages: [...s.messages, userMsg],
+      }));
+
+      setIsStreaming(true);
       try {
         const response = await sendMessage(activeSessionId, text);
-        const aiMsg: Message = {
-          role: "ai",
-          content: response,
-          id: (Date.now() + 1).toString(),
-        };
         updateSession(activeSessionId, (s) => ({
           ...s,
-          messages: [...s.messages, userMsg, aiMsg],
+          messages: [...s.messages, {
+            role: "ai" as const,
+            content: response,
+            id: (Date.now() + 1).toString(),
+          }],
         }));
       } finally {
         setIsStreaming(false);

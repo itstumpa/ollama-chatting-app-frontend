@@ -7,10 +7,10 @@ interface Props {
   isStreaming: boolean;
   mode: "chat" | "rag";
   onSend: (text: string, stream?: boolean) => void;
-  sessionId: string;
+  _sessionId: string;
 }
 
-export default function InputBar({ isStreaming, mode, onSend, sessionId}: Props) {
+export default function InputBar({ isStreaming, mode, onSend, _sessionId}: Props) {
   const [text, setText] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
