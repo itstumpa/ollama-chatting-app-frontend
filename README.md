@@ -40,33 +40,6 @@ npm run dev
 
 ---
 
-## Backend — Add Streaming
-
-### Step 1: Add streamMessage to chat.controller.ts
-Copy the code from `streaming-backend.ts` and add the `streamMessage` export.
-
-### Step 2: Update chat.routes.ts
-```ts
-import { sendMessage, streamMessage } from "../controllers/chat.controller";
-
-router.post("/", sendMessage);
-router.post("/stream", streamMessage);
-```
-
-### Step 3: Add CORS to your Express app
-```bash
-npm install cors
-npm install -D @types/cors
-```
-
-```ts
-// src/app.ts
-import cors from "cors";
-app.use(cors({ origin: "http://localhost:5173" }));
-```
-
----
-
 ## Features
 - Chat with memory (MongoDB + Redis)
 - RAG mode — upload PDF, ask questions
