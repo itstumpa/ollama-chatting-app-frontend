@@ -95,12 +95,12 @@ export default function ChatWindow({ session, isStreaming, onSend }: Props) {
         )}
       </div>
 
-      <InputBar
-        isStreaming={isStreaming}
-        mode={mode}
-        onSend={onSend}
-        sessionId={session.id}
-      />
+<InputBar
+  isStreaming={isStreaming}
+  mode={mode}
+  onSend={onSend}
+  sessionId={session.id}
+/>
     </main>
   );
 }

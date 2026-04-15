@@ -46,8 +46,13 @@ export const sendMessageStream = async (
       const lines = raw.split("\n").filter((l) => l.startsWith("data: "));
       for (const line of lines) {
         const token = line.replace("data: ", "").trim();
-        if (token === "[DONE]") break;
-        if (token) onChunk(token);
+        if (token === "[DONE]" || token === "[ERROR]") break;
+         if (token) {
+    try {
+      onChunk(JSON.parse(token));
+    } catch {
+      onChunk(token);
+    }}
       }
     }
   } catch (err) {

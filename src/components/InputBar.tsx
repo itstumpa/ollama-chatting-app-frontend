@@ -7,25 +7,31 @@ interface Props {
   isStreaming: boolean;
   mode: "chat" | "rag";
   onSend: (text: string, stream?: boolean) => void;
-  _sessionId: string;
+  sessionId: string;
 }
 
-export default function InputBar({ isStreaming, mode, onSend, _sessionId}: Props) {
+export default function InputBar({ isStreaming, mode, onSend}: Props) {
   const [text, setText] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSend = () => {
-    const trimmed = text.trim();
-    if (!trimmed || isStreaming) return;
-    onSend(trimmed, true); // always stream
-    setText("");
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-    }
-  };
+const handleSend = () => {
+  const trimmed = text.trim();
+  if (!trimmed || isStreaming) return;
+  
+  if (mode === "rag") {
+    onSend(trimmed, false); // false = RAG, no stream
+  } else {
+    onSend(trimmed, true); // true = stream
+  }
+  
+  setText("");
+  if (textareaRef.current) {
+    textareaRef.current.style.height = "auto";
+  }
+};
 
   const handleKey = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {

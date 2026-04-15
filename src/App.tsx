@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import Sidebar from "./components/Sidebar";
 import ChatWindow from "./components/ChatWindow";
 import type { Session, Message } from "./types";
-import { sendMessage, sendMessageStream } from "./api/chat";
+import {  sendMessageStream, sendRagMessage } from "./api/chat";
 import "./App.css";
 
 function generateSessionId() {
@@ -33,58 +33,57 @@ function App() {
     setActiveSessionId(newSession.id);
   };
 
-  const handleSend = async (text: string, useStream: boolean = true) => {
-    if (isStreaming) return;
+const handleSend = async (text: string, useStream: boolean = true) => {
+  if (isStreaming) return;
 
-    const userMsg: Message = { role: "user", content: text, id: Date.now().toString() };
-    const aiMsgId = (Date.now() + 1).toString();
+  const userMsg: Message = { role: "user", content: text, id: Date.now().toString() };
+  const aiMsgId = (Date.now() + 1).toString();
 
-    if (useStream) {
-      // add user + empty AI bubble together
+  updateSession(activeSessionId, (s) => ({
+    ...s,
+    title: s.messages.length === 0 ? text.slice(0, 36) : s.title,
+    messages: [...s.messages, userMsg, { role: "ai" as const, content: "", id: aiMsgId }],
+  }));
+
+  setIsStreaming(true);
+
+  if (!useStream) {
+    // RAG mode
+    try {
+      const response = await sendRagMessage(activeSessionId, text);
       updateSession(activeSessionId, (s) => ({
         ...s,
-        title: s.messages.length === 0 ? text.slice(0, 36) : s.title,
-        messages: [...s.messages, userMsg, { role: "ai", content: "", id: aiMsgId }],
+        messages: s.messages.map((m) =>
+          m.id === aiMsgId ? { ...m, content: response } : m
+        ),
       }));
-
-      setIsStreaming(true);
-
-      await sendMessageStream(
-        activeSessionId,
-        text,
-        (chunk) => {
-          updateSession(activeSessionId, (s) => ({
-            ...s,
-            messages: s.messages.map((m) =>
-              m.id === aiMsgId ? { ...m, content: m.content + chunk } : m
-            ),
-          }));
-        },
-        () => setIsStreaming(false)
-      );
-    } else {
+    } catch {
       updateSession(activeSessionId, (s) => ({
         ...s,
-        title: s.messages.length === 0 ? text.slice(0, 36) : s.title,
-        messages: [...s.messages, userMsg],
+        messages: s.messages.map((m) =>
+          m.id === aiMsgId ? { ...m, content: "Error: could not get RAG response." } : m
+        ),
       }));
-
-      setIsStreaming(true);
-      try {
-        const response = await sendMessage(activeSessionId, text);
+    } finally {
+      setIsStreaming(false);
+    }
+  } else {
+    // stream chat mode
+    await sendMessageStream(
+      activeSessionId,
+      text,
+      (chunk) => {
         updateSession(activeSessionId, (s) => ({
           ...s,
-          messages: [...s.messages, {
-            role: "ai" as const,
-            content: response,
-            id: (Date.now() + 1).toString(),
-          }],
+          messages: s.messages.map((m) =>
+            m.id === aiMsgId ? { ...m, content: m.content + chunk } : m
+          ),
         }));
-      } finally {
-        setIsStreaming(false);
-      }
-    }
-  };
+      },
+      () => setIsStreaming(false)
+    );
+  }
+};
 
   return (
     <div className="app-root">
